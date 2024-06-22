@@ -1,29 +1,34 @@
-# ESP32-S 系列 USB 无线适配器方案介绍
+# ESP32-S USB Dongle Solution
 
-## 1.概述
+This example is originally from Espressif's (esp-iot-solution)[https://github.com/espressif/esp-iot-solution/tree/master/examples/usb/device/usb_dongle]
+with small modifications for the (Thingpulse Pendrive S3)[https://thingpulse.com/product/esp32-s3-pendrive-s3-128mb/]
 
-本示例程序演示 ESP32-S 系列芯片如何实现 USB Dongle 设备功能，支持以下功能：
+## 1.Overview
 
-* 支持 Host 主机通过 USB-ECM/RNDIS 无线上网
-* 支持 Host 主机通过 USB-BTH 进行 BLE 扫描、广播、配对、连接、绑定以及读写数据
-* 支持 Host 主机通过 USB-DFU 进行设备升级
-* 支持 Host 主机通过 USB-CDC、UART 对 ESP32-S 系列设备进行通信和控制
-* 支持多种 system、Wi-Fi 控制命令，使用 FreeRTOS-Plus-CLI 命令行接口，易拓展更多命令
-* 支持使用 USB webusb / 串口 / smartconfig 等多种配网方式
-* 支持热插拔
+This example shows how to set up ESP32-S chip to work as a USB Dongle Device.
 
-## 2. 如何使用示例
-### 2.1 硬件准备
+Supports the following functions:
 
-支持 USB-OTG 的 ESP 开发板。
+* Support Host to surf the Internet wirelessly via USB-ECM/RNDIS.
+* Add BLE devices via USB-BTH, support scan, broadcast, connect and other functions.
+* Support Host to communicate and control ESP32-S series devices via USB-CDC or UART.
+* Support Host to upgrade device using USB-DFU.
+* Support system commands and Wi-Fi control commands. It uses FreeRTOS-Plus-CLI interfaces, so it is easy to add more commands.
+* Support hot swap.
+
+## 2.How to use example
+
+### 2.1 Hardware Preparation
+
+Any ESP boards that have USB-OTG supported.
 
 * ESP32-S2
 
 * ESP32-S3
 
-### <span id = "connect">2.2 引脚分配</span>
+### 2.2 Hardware Connection
 
-只有具有 USB-OTG 外设的 ESP 芯片才需要引脚分配。 如果您的电路板没有连接到 USB-OTG 专用 GPIO 的 USB 连接器，您可能需要自己动手制作电缆并将 **D+** 和 **D-** 连接到下面列出的引脚
+Pin assignment is only needed for ESP chips that have an USB-OTG peripheral. If your board doesn't have a USB connector connected to the USB-OTG dedicated GPIOs, you may have to DIY a cable and connect **D+** and **D-** to the pins listed below.
 
 ```
 ESP BOARD          USB CONNECTOR (type A)
@@ -34,6 +39,8 @@ ESP BOARD          USB CONNECTOR (type A)
                          | || GND
                           --
 ```
+
+Refer to `soc/usb_pins.h` to find the real GPIO number of **USBPHY_DP_NUM** and **USBPHY_DM_NUM**.
 
 |             | USB_DP | USB_DM |
 | ----------- | ------ | ------ |
@@ -47,17 +54,19 @@ ESP BOARD          USB CONNECTOR (type A)
 
 <img src="./_static/ESP32-S3.png" alt="ESP32-S3" style="zoom:100%;" />
 
-### 2.3 软件准备
+### 2.3 Software Preparation
 
-1. 确认 ESP-IDF 环境成功搭建。
+* Confirm that the ESP-IDF environment is successfully set up.
+
     ```
-    >git checkout release/v5.0
-    >git pull origin release/v5.0
+    >git checkout release/v4.4
+    >git pull origin release/v4.4
     >git submodule update --init --recursive
     >
     ```
 
-2. 添加 ESP-IDF 环境变量，Linux 方法如下，其它平台请查阅 [设置环境变量](https://docs.espressif.com/projects/esp-idf/zh_CN/latest/esp32/get-started/index.html#get-started-set-up-env)。
+* To add ESP-IDF environment variables. If you are using Linux OS, you can follow below steps. If you are using other OS, please refer to [Set up the environment variables](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/index.html#step-4-set-up-the-environment-variables).
+
     ```
     >cd esp-idf
     >./install.sh
@@ -65,63 +74,64 @@ ESP BOARD          USB CONNECTOR (type A)
     >
     ```
 
-3. 确认已经完整下载  `ESP-IOT-SOLUTION` 仓库。
+* Confirm that the `ESP-IOT-SOLUTION` repository has been completely downloaded, and switch to the `usb/add_usb_solutions` branch.
 
     ```
     >git clone -b usb/add_usb_solutions --recursive https://github.com/espressif/esp-iot-solution
+    >cd esp-iot-solution/example/usb/device/usb_dongle
     >
     ```
 
-4. 设置编译目标为 `esp32s2` 或 `esp32s3`。
+* Set the compilation target to `esp32s2` or `esp32s3`
 
     ```
     >idf.py set-target esp32s2
     >
     ```
 
-### 2.4 软件工程配置
+### 2.4 Project Configuration
 
 ![tinyusb_config](./_static/tinyusb_config.png)
 
 ![uart_config](./_static/uart_config.png)
 
-目前 USB-Dongle 支持如下最大组合选项：
+Currently USB-Dongle supports the following four combination options.
 
-| USB-ECM/RNDIS | USB-BTH | USB-CDC | UART | USB-DFU | WEBUSB |
-| :-----------: | :-----: | :-----: | :--: | :-----: | ------ |
-|       √       |         |         |  √   |    √    | √      |
-|       √       |         |    √    |      |    √    |        |
-|       √       |    √    |         |  √   |         |        |
-|               |    √    |         |  √   |    √    |        |
+| ECM/RNDIS | BTH  | CDC  | UART | DFU  |
+| :-------: | :--: | :--: | :--: | :--: |
+|     √     |      |      |  √   |  √   |
+|     √     |      |  √   |      |  √   |
+|     √     |  √   |      |  √   |  √   |
+|           |  √   |      |  √   |  √   |
 
-* 本软件默认使能 ECM、CDC。
-* UART 默认在 CDC 使能时禁用。
-* UART 可以用于命令通讯，与此同时，你也可以用于蓝牙通讯。
-* 可以通过 `component config -> TinyUSB Stack` 选择 USB 设备。
-* 同时使能 RNDIS/ECM 和 BTH 时，建议禁用 CDC，采用 UART 发送命令，可以通过 `Example Configuration` 进行串口配置。
+* UART is disabled by default when CDC is enabled.
+* UART can be used for command communication, and you can also use Bluetooth for communication.
+* The project enables ECM and CDC by default.
+* You can select USB Device through `component config -> TinyUSB Stack`.
+* When ECM/RNDIS and BTH are enabled at the same time, it is recommended to disable CDC, use UART to send commands, and configure the serial port through `Example Configuration`.
 
->由于目前硬件限制，EndPoint 不能超过一定数量，故不支持 ECM/RNDIS、BTH、CDC 同时使能。
+>Due to current hardware limitations, the number of EndPoints cannot exceed a certain number, so ECM/RNDIS, BTH, and CDC should not be all enabled at the same time.
 
-### 2.5 固件编译&烧录
+### 2.5 build & flash & monitor
 
-您可以通过以下命令编译、下载固件，并查看输出。
+You can use the following command to build and flash the firmware.
 
 ```
 >idf.py -p (PORT) build flash monitor
 >
 ```
 
- * ``(PORT)`` 需要替换为实际的串口名称。
- * 使用命令 `Ctrl-]` 可以退出串口监控状态。
+ * Replace ``(PORT)`` with the actual name of your serial port.
 
+ * To exit the serial monitor, type `Ctrl-]`.
 
-### 2.6 使用说明
+### 2.6 User Guide
 
-1. 完成上述[硬件连接](#connect)并成功烧录固件后，将 USB 连接至 PC 端
+1. After completing above preparation, you can connect PC and your ESP device with USB cable.
 
-2. PC 端将会新增一个 USB 网卡以及一个蓝牙设备
+2. You can see a USB network card and a bluetooth device on your PC.
 
-    * 显示网络设备
+    * Show network devices
 
     ```
     >ifconfig -a
@@ -130,7 +140,7 @@ ESP BOARD          USB CONNECTOR (type A)
 
     <img src="./_static/ifconfig.png" alt="ifconfig" style="zoom: 80%;" />
 
-    * 显示蓝牙设备
+    * Show bluetooth device
 
     ```
     >hciconfig
@@ -139,7 +149,7 @@ ESP BOARD          USB CONNECTOR (type A)
 
     ![hciconfig](./_static/hciconfig.png)
 
-    * 显示 USB-CDC 设备
+    Show USB-CDC device
 
     ```
     >ls /dev/ttyACM*
@@ -148,30 +158,29 @@ ESP BOARD          USB CONNECTOR (type A)
 
     ![ACM](./_static/ACM.png)
 
-3. 通过 USB-CDC 或者 UART 与 ESP 设备进行通信，使用 help 命令来查看目前所支持的所有指令
+3. The PC can communicate with the ESP board through the USB ACM port or UART. And you can use ``help`` command to view all commands supported.
 
-    >与 ESP 设备进行通信时命令末尾需加上 LF（\n）
+    > When communicating with ESP device, add **LF(\n)** at the end of the command
 
-4. 若使能 USB-ECM/RNDIS，则可通过指令来控制 ESP 设备进行配网操作
+4. If USB-RNDIS is enabled, you can connect ESP device to AP by commands.
+    * [Connect to target AP by sta command](./Commands_EN.md#3sta)
+    * [Connect to target AP by startsmart command (SmartConfig)](./Commands_EN.md#5smartconfig)
 
-* [通过 sta 命令来连接至对应路由器](./Commands.md#3sta)
-* [通过 startsmart 命令开启 smartconfig 配网](./Commands.md#5smartconfig)
+### 2.7 Common network device Problems
 
-### 2.7 网络设备常见问题
+#### Windows
 
-- #### Windows
+Windows platform only supports RNDIS, USB ECM is not recognized.
 
-Windows 平台只支持 RNDIS，USB ECM 无法识别
+#### MAC
 
-- #### MAC
+MAC platform only supports ECM, USB RNDIS is not recognized.
 
-MAC 平台只支持 ECM，USB RNDIS 无法识别
+#### Linux
 
-- #### Linux
+Linux platform support both ECM and RNDIS. However, if  RNDIS is used, network devices in Linux do not proactively obtain IP addresses when switching between different routers.
 
-Linux 平台同时支持 ECM 和 RNDIS，不过使用 RNDIS 时，如果切换不同的路由器，Linux 下的网络设备并不会主动重新获取 IP。
-
-如果使用嵌入式 Linux， 没有显示网络设备，可能是在内核中没有使能上述两个模块，在 Linux 内核中使能如下两个配置项，分别用于支持 CDC-ECM 和 RNDIS。
+If embedded Linux is used and network devices are not displayed, the preceding two modules may not be enabled in the kernel. The following two configuration items are enabled in the Linux kernel to support CDC-ECM and RNDIS respectively.
 
 ```
 Device Drivers   --->
@@ -182,51 +191,52 @@ Device Drivers   --->
 				Host For RDNIS and ActiveSync Devices
 ```
 
-如果确定使能上述模块依然无法看到网络设备，请通过 `dmesg` 命令查看内核信息， 确定 Linux 内核中是否有探测到 ESP32-S USB 网络设备，以及是否有错误打印信息。
+If you are sure that the network device cannot be seen after the preceding modules are enabled, run the `dmesg` command to view the kernel information to check whether ESP32-S USB network devices are detected in the Linux kernel and whether error messages are displayed.
 
-## 3. 配置连接 Wi-Fi 网络
+## 3. Connect to a Wi-Fi AP
 
-本示例提供了两种连接 Wi-Fi 网络的方法。
+The example provides two methods to connect ESP device to a Wi-Fi AP.
 
-### [方法 1. 通过 `sta` 命令连接至 Wi-Fi 路由器](./Commands.md#3sta)
+### [Method 1. Connect to target AP by `sta` command](./Commands_EN.md#3sta)
 
-**命令示例**
+**Command Example**
 
 ```
 sta -s <ssid> -p [<password>]
 ```
 
-**说明**
+**Notes**
 
-* `password` 为选填参数。
+* `password` is optional
 
-### [方法 2. 通过 smartconfig 连接至 Wi-Fi 路由器](./Commands.md#5smartconfig)
 
-(1) 硬件准备
+### [Method 2. Connect to target AP by startsmart command (SmartConfig)](./Commands_EN.md#5smartconfig)
 
-从手机应用市场下载 ESPTOUCH APP：[Android source code](https://github.com/EspressifApp/EsptouchForAndroid) [iOS source code](https://github.com/EspressifApp/EsptouchForIOS)。
+(1) Hardware Required
 
-(2) 将手机连接到目标 Wi-Fi AP（2.4GHz）。
+Download ESPTOUCH APP from app store: [Android source code](https://github.com/EspressifApp/EsptouchForAndroid) [iOS source code](https://github.com/EspressifApp/EsptouchForIOS) is available.
 
-(3) 手机打开 ESPTOUCH app 输入 Wi-Fi 密码。
+(2) Make sure your phone connect to the target AP (2.4GHz).
 
-(4) Host 通过 USB ACM port 发送以下命令给 ESP 设备，开始配网。
+(3) Open ESPTOUCH app and input password.
 
-**命令示例**
+(4) Send commands via USB ACM port
+
+**Example**
 
 ```
 smartconfig 1
 ```
 
-## 4. 命令说明
+## 4.Command introduction
 
-[Command](./Commands.md)
+[Commands](./Commands_EN.md)
 
-注意：Wi-Fi 相关命令只有在 USB Network Class 使能时才可以使用.
+Note: Wi-Fi commands can only be used when USB Network Class is enabled
 
-## 5. 如何使用 USB-DFU 对设备升级
+## 5. How to use USB-DFU to upgrade device
 
-在使用 DFU 对设备升级之前，请确保已经在配置项中使能了 DFU 功能
+Before using DFU to upgrade ES[32-S device, ensure that the DFU feature has been enabled in the configuration item.
 
 ```
 component config -> TinyUSB Stack -> Use TinyUSB Stack -> Firmware Upgrade Class (DFU) -> Enable TinyUSB DFU feature
@@ -234,53 +244,53 @@ component config -> TinyUSB Stack -> Use TinyUSB Stack -> Firmware Upgrade Class
 
 #### Ubuntu
 
-在 Ubuntu 环境下首先需要安装 DFU 工具
+You need to install the DFU tool first in Ubuntu.
 
 ```
-
+sudo apt install dfu-util
 ```
 
-使用如下命令进行升级操作
+Run the following command to upgrade.
 
 ```
 sudo dfu-util -d <VendorID> -a 0 -D <OTA_BIN_PATH>
 ```
 
-其中：
+**Notes**
 
-1. VendorID 为 USB vendor ID, 缺省为 0x303A
-2. OTA_BIN_PATH 为需要升级的固件
+- VendorID is USB vendor ID, the default value 0x303A
+- OTA_BIN_PATH is the upgrade firmware
 
-使用如下命令进行上传操作，默认会把 OTA_0 分区读取出来
+Run the following command to upload.
 
 ```
 sudo dfu-util -d <VendorID> -a 0 -U <OTA_BIN_PATH>
 ```
 
-其中：
+**Notes**
 
-1. VendorID 为 USB vendor ID, 缺省为 0x303A
-2. OTA_BIN_PATH 从设备读取固件保存的文件名
+- VendorID is USB vendor ID, the default value 0x303A
+- Read firmware from device into OTA_BIN_PATH
 
 #### Windows
 
-1. 在 Windows 平台首先需要下载 [dfu-util](http://dfu-util.sourceforge.net/releases/dfu-util-0.9-win64.zip)。
+1. On Windows you need to download [dfu-util](http://dfu-util.sourceforge.net/releases/dfu-util-0.9-win64.zip) first.
 
-2. dfu-util 使用 libusb 访问 USB 设备，这要求我们需要在 Windows 上安装 WinUSB 驱动，可以使用 [Zadig 工具](http://zadig.akeo.ie/) 安装。
+2. `dfu-util` uses libusb to access the device. You have to register on Windows the device with the WinUSB driver. Installation using [Zadig](http://zadig.akeo.ie/) tool is recommended.
 
-3. 打开命令行窗口，将 dfu-util.exe 拖进去，然后执行如下命令进行升级操作
+3. Open the command window, run the following commands using `dfu-util.exe`.
 
    ```
    dfu-util.exe -d <VendorID> -a 0 -D <OTA_BIN_PATH>
    ```
 
-   其中：
+   **Notes**
 
-   1. VendorID 为 USB vendor ID, 缺省为 0xcafe
-   2. OTA_BIN_PATH 为需要升级的固件
+   - VendorID is USB vendor ID, the default value 0x303A
+   - OTA_BIN_PATH is the upgrade firmware
 
-#### 常见问题和错误
+#### Common problems
 
-1.  各平台 dfu-util 工具安装错误的问题请参考[此链接](https://support.particle.io/hc/en-us/articles/360039251394-Installing-DFU-util) 。
-2. dfu-util 执行时打印 “No DFU capable USB device available”， 这说明 dfu-util 没有探测到 ESP32-S 芯片的 DFU 设备，请确保在配置项已经使能 DFU 功能。在 Ubuntu 中，请确保使用了管理员权限操作。
-sudo apt install dfu-util
+1. Please refer to [this link](https://support.particle.io/hc/en-us/articles/360039251394-Installing-DFU-util) for the installation error of `dfu-util` tool on each platform.
+2. "No DFU capable USB device available" means `dfu-util` does not detect the DFU device of the ESP32-S chip. Ensure that the DFU feature is enabled in the configuration item.
+   In Linux platform, make sure you are using administrator rights.
