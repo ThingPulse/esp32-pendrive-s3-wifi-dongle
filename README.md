@@ -1,7 +1,7 @@
 # ESP32-S USB Dongle Solution
 
-This example is originally from Espressif's (esp-iot-solution)[https://github.com/espressif/esp-iot-solution/tree/master/examples/usb/device/usb_dongle]
-with small modifications for the (Thingpulse Pendrive S3)[https://thingpulse.com/product/esp32-s3-pendrive-s3-128mb/]
+This example is originally from Espressif's [esp-iot-solution](https://github.com/espressif/esp-iot-solution/tree/master/examples/usb/device/usb_dongle)
+with small modifications for the [Thingpulse Pendrive S3](https://thingpulse.com/product/esp32-s3-pendrive-s3-128mb/)
 
 ## 1.Overview
 
