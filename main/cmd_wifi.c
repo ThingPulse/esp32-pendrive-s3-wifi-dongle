@@ -448,9 +448,21 @@ void initialise_wifi(void)
                                                         NULL,
                                                         NULL));
 
-    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
+    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
+
+    wifi_config_t wifi_config;
+    esp_err_t err = esp_wifi_get_config(ESP_IF_WIFI_STA, &wifi_config);
+
+    if (err == ESP_OK) {
+        ESP_LOGI(TAG, "Connecting to previously configured network: SSID: %s", wifi_config.sta.ssid);
+        ESP_ERROR_CHECK(esp_wifi_connect());
+    } else {
+        ESP_LOGI(TAG, "No previously stored Wi-Fi configuration found.");
+        // Here you might prompt the user for new Wi-Fi credentials
+        // or set a default configuration if desired.
+    }
     initialized = true;
 }
 
