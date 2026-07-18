@@ -3,6 +3,69 @@
 This example is originally from Espressif's [esp-iot-solution](https://github.com/espressif/esp-iot-solution/tree/master/examples/usb/device/usb_dongle)
 with small modifications for the [Thingpulse Pendrive S3](https://thingpulse.com/product/esp32-s3-pendrive-s3-128mb/)
 
+## ESP App Market releases
+
+Production releases are built with ESP-IDF 5.2.2 for the ESP32-S3. Set up that
+ESP-IDF version, then build from a clean tree:
+
+```sh
+. /path/to/esp-idf/export.sh
+idf.py fullclean build
+```
+
+Generate the release directory from ESP-IDF's actual `flasher_args.json`. When
+running at an exact `v*` tag, the version is read from that tag:
+
+```sh
+python3 scripts/app_market.py generate
+python3 scripts/app_market.py validate release/app-market.json
+```
+
+For a local, untagged test build, provide a SemVer version explicitly:
+
+```sh
+python3 scripts/app_market.py generate --version v1.2.0-rc.1
+python3 scripts/app_market.py validate release/app-market.json
+```
+
+The generated `release/` directory contains `app-market.json` and every binary
+needed to flash an erased device. It is ignored by Git; the root
+`app-market.json` is the maintainable template showing the fixed metadata and
+layout. Never upload that template in place of the generated manifest.
+
+To publish a snapshot, create and push a SemVer prerelease tag:
+
+```sh
+git tag -a v1.2.0-rc.1 -m "v1.2.0-rc.1"
+git push origin v1.2.0-rc.1
+```
+
+To publish to the stable catalog, use an ordinary SemVer tag:
+
+```sh
+git tag -a v1.2.0 -m "v1.2.0"
+git push origin v1.2.0
+```
+
+GitHub prereleases (`-rc`, `-beta`, `-alpha`, or any other SemVer prerelease)
+are imported by the ESP App Market as snapshots. Normal GitHub releases are
+imported into its stable catalog. The release workflow can also be run manually
+for an existing tag using its `tag` input.
+
+If a prerelease is erroneous, delete its GitHub Release first, correct the
+problem, and use a new prerelease number (recommended):
+
+```sh
+gh release delete v1.2.0-rc.1 --yes
+git push origin :refs/tags/v1.2.0-rc.1
+git tag -d v1.2.0-rc.1
+# Fix the issue, then create v1.2.0-rc.2 normally.
+```
+
+Replacing a tag that others may already have fetched is unsafe; prefer a new
+prerelease tag. If replacement is unavoidable, remove both the release and the
+remote tag before recreating it, then rerun the workflow manually.
+
 ## 1.Overview
 
 This example shows how to set up ESP32-S chip to work as a USB Dongle Device.

@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "app": {
+    "id": "tp-pendrive-s3-wifi-dongle",
+    "name": "SuperWifiDuck",
+    "description": "USB Wi-Fi dongle firmware for the ThingPulse ESP32-S3 Pendrive.",
+    "supportedDevices": [
+      "tp-pendrive-s3"
+    ],
+    "tags": [
+      "wifi",
+      "security"
+    ],
+    "icon": "_static/ESP32-S3.png"
+  },
+  "release": {
+    "version": "${VERSION}",
+    "partitions": [
+      {
+        "name": "bootloader",
+        "asset": "bootloader.bin",
+        "offset": "0x0",
+        "sha256": "${BOOTLOADER_SHA256}"
+      },
+      {
+        "name": "partition-table",
+        "asset": "partition-table.bin",
+        "offset": "0x8000",
+        "sha256": "${PARTITION_TABLE_SHA256}"
+      },
+      {
+        "name": "otadata",
+        "asset": "ota_data_initial.bin",
+        "offset": "0xd000",
+        "sha256": "${OTADATA_SHA256}"
+      },
+      {
+        "name": "application",
+        "asset": "usb_dongle.bin",
+        "offset": "0x10000",
+        "sha256": "${APPLICATION_SHA256}"
+      }
+    ]
+  }
+}
