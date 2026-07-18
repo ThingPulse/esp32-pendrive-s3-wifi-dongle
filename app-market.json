@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "app": {
     "id": "tp-pendrive-s3-wifi-dongle",
-    "name": "SuperWifiDuck",
+    "name": "Pendrive S3 Wi-Fi Dongle",
     "description": "USB Wi-Fi dongle firmware for the ThingPulse ESP32-S3 Pendrive.",
     "supportedDevices": [
       "tp-pendrive-s3"
