@@ -8,6 +8,20 @@ from scripts import app_market
 
 
 class AppMarketTests(unittest.TestCase):
+    def write_template(self, root: Path):
+        (root / "app-market.json").write_text(json.dumps({
+            "schemaVersion": 1,
+            "app": {
+                "id": "tp-pendrive-s3-wifi-dongle",
+                "name": "Template Name",
+                "description": "Test description",
+                "supportedDevices": ["tp-pendrive-s3"],
+                "tags": ["wifi", "security"],
+                "icon": {"asset": "ESP32-S3.png", "sha256": "${ICON_SHA256}"},
+            },
+            "release": {"version": "${VERSION}", "partitions": []},
+        }))
+
     def test_version_normalization_and_prerelease(self):
         self.assertEqual(app_market.normalize_version("v1.2.0-rc.1"), "1.2.0-rc.1")
         self.assertTrue(app_market.is_prerelease("v1.2.0-beta.1"))
@@ -60,11 +74,13 @@ class AppMarketTests(unittest.TestCase):
     def test_manifest_structure_and_validation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            self.write_template(root)
             (root / "_static").mkdir()
             (root / "_static/ESP32-S3.png").write_bytes(b"png-test-data")
             manifest_path = app_market.generate(root, self.fixture(root), root / "release", "v1.2.0")
             manifest = app_market.validate(manifest_path)
             self.assertEqual(manifest["app"]["supportedDevices"], ["tp-pendrive-s3"])
+            self.assertEqual(manifest["app"]["name"], "Template Name")
             self.assertEqual(manifest["release"]["version"], "1.2.0")
             self.assertEqual(len(manifest["release"]["partitions"]), 4)
             self.assertEqual(manifest["app"]["icon"]["asset"], "ESP32-S3.png")
@@ -73,6 +89,7 @@ class AppMarketTests(unittest.TestCase):
     def test_missing_icon(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            self.write_template(root)
             with self.assertRaises(FileNotFoundError):
                 app_market.generate(root, self.fixture(root), root / "release", "v1.2.0")
 

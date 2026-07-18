@@ -11,15 +11,6 @@ import shutil
 import subprocess
 from pathlib import Path
 
-APP = {
-    "id": "tp-pendrive-s3-wifi-dongle",
-    "name": "SuperWifiDuck",
-    "description": "USB Wi-Fi dongle firmware for the ThingPulse ESP32-S3 Pendrive.",
-    "supportedDevices": ["tp-pendrive-s3"],
-    "tags": ["wifi", "security"],
-    "icon": {"asset": "ESP32-S3.png"},
-}
-ICON_SOURCE = Path("_static/ESP32-S3.png")
 EXPECTED = {
     "bootloader": ("bootloader/bootloader.bin", 0x0),
     "partition-table": ("partition_table/partition-table.bin", 0x8000),
@@ -89,11 +80,25 @@ def check_ranges(partitions: list[dict]) -> None:
         previous = item
 
 
-def make_manifest(version: str, partitions: list[dict]) -> dict:
+def load_app_metadata(template_path: Path) -> dict:
+    template = json.loads(template_path.read_text(encoding="utf-8"))
+    app = template.get("app")
+    if not isinstance(app, dict):
+        raise ValueError(f"missing application metadata in {template_path}")
+    required = ("id", "name", "description", "supportedDevices", "tags", "icon")
+    if any(field not in app for field in required):
+        raise ValueError(f"incomplete application metadata in {template_path}")
+    icon = app.get("icon")
+    if not isinstance(icon, dict) or Path(icon.get("asset", "")).name != icon.get("asset", ""):
+        raise ValueError("app.icon.asset must be a release asset filename")
+    return app
+
+
+def make_manifest(version: str, partitions: list[dict], app: dict, icon_source: Path) -> dict:
     check_ranges(partitions)
     return {
         "schemaVersion": 1,
-        "app": {**APP, "icon": {"asset": APP["icon"]["asset"], "sha256": digest(ICON_SOURCE)}},
+        "app": {**app, "icon": {"asset": app["icon"]["asset"], "sha256": digest(icon_source)}},
         "release": {
             "version": normalize_version(version),
             "partitions": [
@@ -107,8 +112,9 @@ def make_manifest(version: str, partitions: list[dict]) -> dict:
 def validate(manifest_path: Path) -> dict:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     app = manifest.get("app", {})
-    if manifest.get("schemaVersion") != 1 or {**app, "icon": {"asset": app.get("icon", {}).get("asset")}} != APP:
-        raise ValueError("invalid schemaVersion or application metadata")
+    required = ("id", "name", "description", "supportedDevices", "tags", "icon")
+    if manifest.get("schemaVersion") != 1 or not isinstance(app, dict) or any(field not in app for field in required):
+        raise ValueError("invalid schemaVersion or incomplete application metadata")
     icon = app["icon"]
     icon_path = manifest_path.parent / icon["asset"]
     if Path(icon["asset"]).name != icon["asset"] or not icon_path.is_file():
@@ -140,16 +146,16 @@ def validate(manifest_path: Path) -> dict:
 
 
 def generate(root: Path, build_dir: Path, output_dir: Path, version: str | None) -> Path:
-    global ICON_SOURCE
-    ICON_SOURCE = root / "_static/ESP32-S3.png"
-    if not ICON_SOURCE.is_file():
-        raise FileNotFoundError(f"missing application icon: {ICON_SOURCE}")
+    app = load_app_metadata(root / "app-market.json")
+    icon_source = root / "_static" / app["icon"]["asset"]
+    if not icon_source.is_file():
+        raise FileNotFoundError(f"missing application icon: {icon_source}")
     partitions = discover(build_dir)
-    manifest = make_manifest(version or version_from_git(root), partitions)
+    manifest = make_manifest(version or version_from_git(root), partitions, app, icon_source)
     output_dir.mkdir(parents=True, exist_ok=True)
     for item in partitions:
         shutil.copyfile(item["source"], output_dir / item["asset"])
-    shutil.copyfile(ICON_SOURCE, output_dir / APP["icon"]["asset"])
+    shutil.copyfile(icon_source, output_dir / app["icon"]["asset"])
     output = output_dir / "app-market.json"
     output.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     validate(output)

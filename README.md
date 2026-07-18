@@ -31,7 +31,9 @@ python3 scripts/app_market.py validate release/app-market.json
 The generated `release/` directory contains `app-market.json`, its checksummed
 icon asset, and every binary needed to flash an erased device. It is ignored by Git; the root
 `app-market.json` is the maintainable template showing the fixed metadata and
-layout. Never upload that template in place of the generated manifest.
+layout. Its `app` object is the authoritative source for release metadata such
+as the application name and description. Never upload that template in place
+of the generated manifest.
 
 To publish a snapshot, create and push a SemVer prerelease tag:
 
