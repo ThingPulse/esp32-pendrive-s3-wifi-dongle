@@ -56,4 +56,4 @@ jobs:
           else
             gh release create "$RELEASE_TAG" --verify-tag --generate-notes --prerelease=${{ steps.release_type.outputs.prerelease }}
           fi
-          gh release upload "$RELEASE_TAG" release/app-market.json release/*.bin --clobber
+          gh release upload "$RELEASE_TAG" release/app-market.json release/*.bin release/*.png --clobber

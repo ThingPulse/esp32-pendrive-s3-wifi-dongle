@@ -28,8 +28,8 @@ python3 scripts/app_market.py generate --version v1.2.0-rc.1
 python3 scripts/app_market.py validate release/app-market.json
 ```
 
-The generated `release/` directory contains `app-market.json` and every binary
-needed to flash an erased device. It is ignored by Git; the root
+The generated `release/` directory contains `app-market.json`, its checksummed
+icon asset, and every binary needed to flash an erased device. It is ignored by Git; the root
 `app-market.json` is the maintainable template showing the fixed metadata and
 layout. Never upload that template in place of the generated manifest.
 

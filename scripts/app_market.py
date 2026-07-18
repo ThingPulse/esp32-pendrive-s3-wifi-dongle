@@ -17,8 +17,9 @@ APP = {
     "description": "USB Wi-Fi dongle firmware for the ThingPulse ESP32-S3 Pendrive.",
     "supportedDevices": ["tp-pendrive-s3"],
     "tags": ["wifi", "security"],
-    "icon": "_static/ESP32-S3.png",
+    "icon": {"asset": "ESP32-S3.png"},
 }
+ICON_SOURCE = Path("_static/ESP32-S3.png")
 EXPECTED = {
     "bootloader": ("bootloader/bootloader.bin", 0x0),
     "partition-table": ("partition_table/partition-table.bin", 0x8000),
@@ -92,7 +93,7 @@ def make_manifest(version: str, partitions: list[dict]) -> dict:
     check_ranges(partitions)
     return {
         "schemaVersion": 1,
-        "app": APP,
+        "app": {**APP, "icon": {"asset": APP["icon"]["asset"], "sha256": digest(ICON_SOURCE)}},
         "release": {
             "version": normalize_version(version),
             "partitions": [
@@ -105,8 +106,15 @@ def make_manifest(version: str, partitions: list[dict]) -> dict:
 
 def validate(manifest_path: Path) -> dict:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("schemaVersion") != 1 or manifest.get("app") != APP:
+    app = manifest.get("app", {})
+    if manifest.get("schemaVersion") != 1 or {**app, "icon": {"asset": app.get("icon", {}).get("asset")}} != APP:
         raise ValueError("invalid schemaVersion or application metadata")
+    icon = app["icon"]
+    icon_path = manifest_path.parent / icon["asset"]
+    if Path(icon["asset"]).name != icon["asset"] or not icon_path.is_file():
+        raise FileNotFoundError(f"missing release icon: {icon_path}")
+    if not SHA256.fullmatch(icon.get("sha256", "")) or digest(icon_path) != icon["sha256"]:
+        raise ValueError(f"invalid checksum for {icon['asset']}")
     normalize_version(manifest.get("release", {}).get("version", ""))
     partitions = manifest["release"].get("partitions", [])
     if len(partitions) != len(EXPECTED):
@@ -132,11 +140,16 @@ def validate(manifest_path: Path) -> dict:
 
 
 def generate(root: Path, build_dir: Path, output_dir: Path, version: str | None) -> Path:
+    global ICON_SOURCE
+    ICON_SOURCE = root / "_static/ESP32-S3.png"
+    if not ICON_SOURCE.is_file():
+        raise FileNotFoundError(f"missing application icon: {ICON_SOURCE}")
     partitions = discover(build_dir)
     manifest = make_manifest(version or version_from_git(root), partitions)
     output_dir.mkdir(parents=True, exist_ok=True)
     for item in partitions:
         shutil.copyfile(item["source"], output_dir / item["asset"])
+    shutil.copyfile(ICON_SOURCE, output_dir / APP["icon"]["asset"])
     output = output_dir / "app-market.json"
     output.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     validate(output)

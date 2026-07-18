@@ -11,7 +11,10 @@
       "wifi",
       "security"
     ],
-    "icon": "_static/ESP32-S3.png"
+    "icon": {
+      "asset": "ESP32-S3.png",
+      "sha256": "${ICON_SHA256}"
+    }
   },
   "release": {
     "version": "${VERSION}",

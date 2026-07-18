@@ -60,11 +60,21 @@ class AppMarketTests(unittest.TestCase):
     def test_manifest_structure_and_validation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            (root / "_static").mkdir()
+            (root / "_static/ESP32-S3.png").write_bytes(b"png-test-data")
             manifest_path = app_market.generate(root, self.fixture(root), root / "release", "v1.2.0")
             manifest = app_market.validate(manifest_path)
             self.assertEqual(manifest["app"]["supportedDevices"], ["tp-pendrive-s3"])
             self.assertEqual(manifest["release"]["version"], "1.2.0")
             self.assertEqual(len(manifest["release"]["partitions"]), 4)
+            self.assertEqual(manifest["app"]["icon"]["asset"], "ESP32-S3.png")
+            self.assertEqual(len(manifest["app"]["icon"]["sha256"]), 64)
+
+    def test_missing_icon(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with self.assertRaises(FileNotFoundError):
+                app_market.generate(root, self.fixture(root), root / "release", "v1.2.0")
 
 
 if __name__ == "__main__":
