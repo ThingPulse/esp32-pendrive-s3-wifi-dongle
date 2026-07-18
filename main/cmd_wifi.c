@@ -455,7 +455,7 @@ void initialise_wifi(void)
     wifi_config_t wifi_config;
     esp_err_t err = esp_wifi_get_config(ESP_IF_WIFI_STA, &wifi_config);
 
-    if (err == ESP_OK) {
+    if (err == ESP_OK && strlen((char *)wifi_config.sta.ssid) > 0) {
         ESP_LOGI(TAG, "Connecting to previously configured network: SSID: %s", wifi_config.sta.ssid);
         ESP_ERROR_CHECK(esp_wifi_connect());
     } else {
